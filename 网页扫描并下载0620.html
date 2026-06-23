@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>智能扫码记录仪 · 单号识别与数据下载</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, 'Segoe UI', 'Roboto', 'Noto Sans', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(145deg, #e9f0f5 0%, #d9e2ec 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+            margin: 0;
+        }
+
+        .card {
+            max-width: 750px;
+            width: 100%;
+            background: rgba(255,255,255,0.97);
+            backdrop-filter: blur(2px);
+            border-radius: 40px;
+            box-shadow: 0 20px 35px -12px rgba(0,0,0,0.25);
+            overflow: hidden;
+        }
+
+        .header {
+            background: #1e2f3e;
+            color: white;
+            padding: 18px 20px 14px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+        }
+
+        .content {
+            padding: 22px 22px 20px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+        .top-section-label {
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: #1e2f3e;
+            background: #e2edf5;
+            border-radius: 16px;
+            padding: 8px 14px;
+            margin-bottom: 14px;
+            display: inline-block;
+        }
+
+        .input-group label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            color: #1e2f3e;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+        }
+
+        .scan-area {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        textarea {
+            width: 100%;
+            border: 2px solid #cfdfed;
+            border-radius: 28px;
+            padding: 12px 16px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            resize: vertical;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            background: white;
+            transition: 0.2s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #2c7da0;
+            box-shadow: 0 0 0 3px rgba(44,125,160,0.15);
+        }
+
+        .button-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 4px;
+        }
+
+        button {
+            background: #2c7da0;
+            border: none;
+            color: white;
+            font-weight: 600;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        button:hover {
+            background: #1f5e7a;
+            transform: translateY(-1px);
+        }
+
+        .clear-btn { background: #5e7e8c; }
+        .demo-btn { background: #3b8b5e; }
+        .download-btn { background: #2c5e6e; }
+        .erase-records-btn { background: #a5523a; }
+
+        .result-panel {
+            background: #f4f9fe;
+            border-radius: 24px;
+            padding: 0;
+            margin: 16px 0 18px;
+            overflow: hidden;
+        }
+
+        .result-header {
+            background: #e2edf5;
+            padding: 8px 16px;
+            font-weight: 600;
+            font-size: 0.7rem;
+            color: #2c5568;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #cde0ec;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .result-card {
+            background: white;
+            margin: 10px;
+            border-radius: 20px;
+            padding: 14px 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+        }
+
+        .result-line {
+            margin-bottom: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: 6px;
+        }
+        .result-line:last-child {
+            margin-bottom: 0;
+        }
+        .result-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #5c7f8c;
+            min-width: 75px;
+            letter-spacing: 0.3px;
+        }
+        .result-value {
+            font-family: 'SF Mono', monospace;
+            font-weight: 600;
+            font-size: 0.85rem;
+            word-break: break-all;
+            background: #f4f9fe;
+            padding: 3px 10px;
+            border-radius: 30px;
+            display: inline-block;
+        }
+        
+        .success-container {
+            text-align: center;
+            margin-top: 8px;
+            margin-bottom: 4px;
+        }
+        .success-check {
+            font-size: 3rem;
+            color: #1f8a4c;
+            display: inline-block;
+            margin-right: 12px;
+            vertical-align: middle;
+        }
+        .highlight-code {
+            font-size: 2.2rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            background: linear-gradient(135deg, #1e8f5e, #2c7da0);
+            color: white;
+            padding: 6px 18px;
+            border-radius: 50px;
+            display: inline-block;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-shadow: 0 1px 1px rgba(0,0,0,0.1);
+            vertical-align: middle;
+        }
+        .highlight-gr, .highlight-mi {
+            font-size: 2.2rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            background: linear-gradient(135deg, #2c7da0, #1e5a7a);
+            color: white;
+            padding: 6px 24px;
+            border-radius: 50px;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        
+        .fail-container {
+            text-align: center;
+            margin-top: 8px;
+            margin-bottom: 4px;
+        }
+        .fail-cross {
+            font-size: 4rem;
+            color: #c44536;
+            display: inline-block;
+            font-weight: 700;
+        }
+        .destroy-code {
+            font-size: 1.6rem !important;
+            font-weight: 800;
+            letter-spacing: 2px;
+            background: #8a8a8a !important;
+            color: white;
+            padding: 4px 16px;
+            border-radius: 50px;
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 10px;
+        }
+        .destroy-banner {
+            margin-top: 10px;
+            background: #ececec;
+            border: 1.5px solid #c9c9c9;
+            color: #555;
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-weight: 700;
+            font-size: 0.8rem;
+            text-align: center;
+        }
+        
+        .records-section {
+            margin-top: 20px;
+            border-top: 2px dashed #cbdde8;
+            padding-top: 16px;
+        }
+        .records-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+        .records-title {
+            font-weight: 700;
+            color: #1e2f3e;
+            font-size: 0.9rem;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .record-badge {
+            background: #2c7da0;
+            border-radius: 30px;
+            padding: 2px 10px;
+            font-size: 0.7rem;
+            color: white;
+        }
+        .record-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .records-list-container {
+            background: white;
+            border-radius: 24px;
+            max-height: 260px;
+            overflow-y: auto;
+            border: 1px solid #e2edf5;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.02);
+        }
+        .record-item {
+            padding: 12px 14px;
+            border-bottom: 1px solid #eff4f9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.1s;
+        }
+        .record-item:hover {
+            background: #fafdff;
+        }
+        .record-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+        }
+        .record-sn {
+            font-family: monospace;
+            font-weight: 600;
+            font-size: 0.8rem;
+            background: #eef3fc;
+            padding: 2px 8px;
+            border-radius: 20px;
+            display: inline-block;
+            width: fit-content;
+        }
+        .record-detail {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            font-size: 0.7rem;
+            color: #4f6f7e;
+        }
+        .record-status {
+            font-weight: bold;
+        }
+        .status-success {
+            color: #1f8a4c;
+        }
+        .status-fail {
+            color: #c44536;
+        }
+        .record-time {
+            color: #7f9aad;
+        }
+        .delete-record {
+            background: none;
+            border: none;
+            font-size: 1rem;
+            color: #bf8b7a;
+            cursor: pointer;
+            padding: 5px 8px;
+            border-radius: 30px;
+        }
+        .delete-record:hover {
+            background: #fbe9e5;
+            color: #b3412f;
+        }
+        .empty-records {
+            text-align: center;
+            padding: 32px 16px;
+            color: #9cb8c9;
+            font-size: 0.8rem;
+        }
+
+        .list-manager {
+            margin-top: 16px;
+            border-top: 1px solid #dce5ec;
+            padding-top: 14px;
+        }
+        .list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        .list-header h3 { margin: 0; font-size: 0.85rem; font-weight: 600; }
+        .badge-count { background: #2c7da0; color: white; border-radius: 30px; padding: 2px 10px; font-size: 0.65rem; }
+        .list-input-area {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+        .list-input-area input {
+            flex: 2;
+            min-width: 130px;
+            border: 1.5px solid #cfdfed;
+            border-radius: 60px;
+            padding: 6px 14px;
+            font-family: monospace;
+            font-size: 0.8rem;
+        }
+        .small-btn {
+            background: #5f8b9c;
+            padding: 5px 14px;
+            font-size: 0.7rem;
+        }
+        .value-list {
+            background: white;
+            border-radius: 20px;
+            padding: 4px 8px;
+            max-height: 140px;
+            overflow-y: auto;
+        }
+        .list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 8px;
+            border-bottom: 1px solid #ecf3f8;
+            font-family: monospace;
+            font-size: 0.8rem;
+        }
+        .remove-item {
+            background: none;
+            border: none;
+            color: #b3412f;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 0 4px;
+        }
+        .rules-footer {
+            margin-top: 18px;
+            padding-top: 12px;
+            border-top: 1px solid #dce5ec;
+            font-size: 0.65rem;
+            color: #6e8b9b;
+            text-align: center;
+            line-height: 1.4;
+        }
+        @media (max-width: 550px) {
+            .content { padding: 16px; }
+            .result-card { padding: 12px; }
+            .highlight-code, .highlight-gr, .highlight-mi { font-size: 1.4rem; padding: 4px 12px; }
+            .success-check { font-size: 2.2rem; }
+            .fail-cross { font-size: 3rem; }
+            .record-detail { flex-direction: column; align-items: flex-start; }
+        }
+
+        /* ===== 商家检索 Section (独立功能, 与入库30天扫描无关) ===== */
+        .merchant-section {
+            margin-top: 24px;
+            padding-top: 18px;
+            border-top: 3px dashed #e3b9b3;
+        }
+        .merchant-section-header {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            margin-bottom: 4px;
+            flex-wrap: wrap;
+        }
+        .merchant-section-header h2 {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #7a2e2e;
+        }
+        .merchant-section-sub {
+            font-size: 0.7rem;
+            color: #a8716c;
+        }
+        .merchant-input-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        .merchant-input-row input {
+            flex: 1;
+            min-width: 200px;
+            border: 2px solid #ecc5c0;
+            border-radius: 60px;
+            padding: 10px 16px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 0.9rem;
+            background: white;
+            transition: 0.2s;
+        }
+        .merchant-input-row input:focus {
+            outline: none;
+            border-color: #c4453f;
+            box-shadow: 0 0 0 3px rgba(196,69,63,0.15);
+        }
+        .merchant-check-btn {
+            background: #c4453f;
+        }
+        .merchant-check-btn:hover {
+            background: #a3322d;
+        }
+        .merchant-result-panel {
+            background: #fbeeec;
+            border-radius: 24px;
+            margin: 14px 0 12px;
+            overflow: hidden;
+            min-height: 50px;
+        }
+        .merchant-result-header {
+            background: #f3d8d4;
+            padding: 8px 16px;
+            font-weight: 600;
+            font-size: 0.7rem;
+            color: #7a2e2e;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #e7c0bb;
+        }
+        .merchant-result-body {
+            padding: 14px 16px;
+        }
+        .merchant-empty {
+            text-align: center;
+            color: #c79b96;
+            font-size: 0.8rem;
+            padding: 10px;
+        }
+        .merchant-match {
+            text-align: center;
+        }
+        .merchant-match-icon {
+            font-size: 2.6rem;
+            display: block;
+            margin-bottom: 6px;
+        }
+        .merchant-match-code {
+            font-size: 1.8rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            color: white;
+            padding: 5px 18px;
+            border-radius: 50px;
+            display: inline-block;
+            margin-bottom: 8px;
+        }
+        .merchant-match-code.lost {
+            background: linear-gradient(135deg, #c4453f, #8c2e29);
+        }
+        .merchant-match-code.notlost {
+            background: linear-gradient(135deg, #6c8f9c, #4a6b76);
+        }
+        .merchant-match-banner {
+            font-weight: 700;
+            font-size: 0.85rem;
+            border-radius: 18px;
+            padding: 8px 14px;
+            margin-top: 4px;
+        }
+        .merchant-match-banner.lost {
+            background: #fbe1de;
+            color: #8c2e29;
+        }
+        .merchant-match-banner.notlost {
+            background: #eef4f6;
+            color: #41606b;
+        }
+        .merchant-tracking-echo {
+            font-family: monospace;
+            font-size: 0.75rem;
+            color: #9a6d68;
+            margin-top: 8px;
+        }
+        .merchant-codes-list {
+            margin-top: 12px;
+        }
+        .merchant-codes-list h3 {
+            margin: 0 0 8px 0;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #7a2e2e;
+        }
+        .merchant-chip-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .merchant-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #fbeeec;
+            border: 1.5px solid #ecc5c0;
+            color: #8c2e29;
+            border-radius: 30px;
+            padding: 5px 14px;
+            font-family: monospace;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+        .merchant-chip .lost-tag {
+            font-family: system-ui;
+            font-weight: 600;
+            font-size: 0.62rem;
+            background: #c4453f;
+            color: white;
+            border-radius: 20px;
+            padding: 2px 8px;
+        }
+        .merchant-chip.highlight-flash {
+            box-shadow: 0 0 0 3px rgba(196,69,63,0.4);
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="header">
+        <h1>📡 扫码记录仪 · 专业单号识别</h1>
+    </div>
+    <div class="content">
+        <div class="top-section-label">📦 入库30天检索 · 白名单核对</div>
+        <div class="input-group">
+            <label>🔍 扫码枪 / 手动输入 (自动识别并记录)</label>
+            <div class="scan-area">
+                <textarea id="trackingInput" rows="2" placeholder="📌 扫码枪直接扫，自动识别并保存到下方记录表&#10;示例:&#10;GR2024123456   ✅ 直接成功&#10;MI2024123456   ✅ 直接成功&#10;UUS1234567890  → 提取7-9位匹配白名单&#10;普通单号XYZ123456789 → 提取7-9位匹配"></textarea>
+                <div class="button-row">
+                    <button id="demoFillBtn" class="demo-btn">📋 随机示例</button>
+                    <button id="clearScanBtn" class="clear-btn">🗑️ 清空输入</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="result-panel">
+            <div class="result-header">
+                <span>🔖 本次识别结果</span>
+                <span style="font-size:0.6rem;">按回车自动记录</span>
+            </div>
+            <div id="resultContainer" class="empty-result">
+                等待扫码或输入...
+            </div>
+        </div>
+
+        <div class="records-section">
+            <div class="records-header">
+                <div class="records-title">
+                    📋 扫码记录清单
+                    <span class="record-badge" id="recordCount">0</span>
+                </div>
+                <div class="record-actions">
+                    <button id="downloadRecordsBtn" class="download-btn" style="padding:5px 14px;">⬇️ 下载数据(CSV)</button>
+                    <button id="eraseAllRecordsBtn" class="erase-records-btn" style="padding:5px 14px;">🗑️ 清空记录</button>
+                </div>
+            </div>
+            <div class="records-list-container" id="recordsListContainer">
+                <div class="empty-records">暂无记录，扫码/输入后按回车自动保存</div>
+            </div>
+        </div>
+
+        <!-- 白名单管理 - 已移除 319, 110, 733 -->
+        <div class="list-manager">
+            <div class="list-header">
+                <h3>✅ 有效数值白名单 (3位码 / GR前缀) · 不在名单内打 ✗ = 销毁</h3>
+                <span class="badge-count" id="listCount">0</span>
+            </div>
+            <div class="list-input-area">
+                <input type="text" id="newListValue" placeholder="3位数值, e.g., 789" maxlength="3" style="text-transform:uppercase">
+                <button id="addToListBtn" class="small-btn">➕ 添加</button>
+                <button id="resetDefaultList" class="small-btn" style="background:#6c8f9c;">⟳ 重置官方白名单</button>
+            </div>
+            <div class="value-list" id="valueListContainer">加载中...</div>
+        </div>
+        
+        <div class="rules-footer">
+            <strong>📐 识别规则 & 白名单说明 (已更新)</strong><br>
+            <span class="rule-item">✨ <strong>UUS</strong> → 取7-9位比对白名单</span>
+            <span class="rule-item">🎯 <strong>GR / MI</strong> → 直接成功(GR前缀视作顶级成功)</span>
+            <span class="rule-item">📌 <strong>其他</strong> → 取7-9位比对白名单</span>
+            <span class="rule-item">✅ <strong>当前白名单: 045,048,998,064,056,083,130,150,156,193,375,470,624,656,660,661,741,743,751,178 (已移除319,110,733)</strong></span>
+            <span class="rule-item">💾 每次“回车”自动将结果存储，支持导出CSV</span>
+        </div>
+
+        <!-- ===== 商家检索 Section: 独立功能，与上方「入库30天」扫描记录无关 ===== -->
+        <div class="merchant-section">
+            <div class="merchant-section-header">
+                <h2>🔎 日常入库商家检索 · 重要客户标注</h2>
+            </div>
+            <div class="merchant-section-sub">输入单号，自动提取第7-9位商家代码 · 这5个商家代码为重要客户，需要退回</div>
+
+            <div class="merchant-input-row">
+                <input type="text" id="merchantLookupInput" placeholder="扫描或输入完整单号 (GR/MI 开头不适用此检索)">
+                <button id="merchantCheckBtn" class="merchant-check-btn">🔎 检索商家</button>
+            </div>
+
+            <div class="merchant-result-panel">
+                <div class="merchant-result-header">检索结果</div>
+                <div class="merchant-result-body" id="merchantResultBody">
+                    <div class="merchant-empty">等待输入单号...</div>
+                </div>
+            </div>
+
+            <div class="merchant-codes-list">
+                <h3>📋 重要客户商家代码（需退回）</h3>
+                <div class="merchant-chip-row" id="merchantChipRow"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ======================= 白名单: 移除319, 110, 733 =======================
+    // 之前保留: 045,048,998,064,056,083,110,130,150,156,193,319,375,470,624,656,660,661,733,741,743,751
+    // 现移除319, 110, 733
+    // 最终保留: 045,048,998,064,056,083,130,150,156,193,375,470,624,656,660,661,741,743,751
+    const PRESET_VALUES_CLEAN = [
+        "045", "048", "998", "064", "056", "083", "130", 
+        "150", "156", "193", "375", "470", "624", "656", 
+        "660", "661", "741", "743", "751", "178"
+    ];
+    
+    function getDefaultValidSet() {
+        const set = new Set();
+        PRESET_VALUES_CLEAN.forEach(v => set.add(v.toUpperCase()));
+        // 二次确保关键值存在
+        set.add("045");
+        set.add("048");
+        set.add("998");
+        set.add("056");
+        return set;
+    }
+    
+    let validSet = new Set();
+    
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+    
+    function updateListUI() {
+        const container = document.getElementById('valueListContainer');
+        const countSpan = document.getElementById('listCount');
+        const items = Array.from(validSet).sort();
+        countSpan.innerText = items.length;
+        if (items.length === 0) {
+            container.innerHTML = '<div style="padding:12px; text-align:center; color:#8aa9b9;">✨ 暂无白名单，请添加</div>';
+            return;
+        }
+        container.innerHTML = '';
+        items.forEach(v => {
+            const div = document.createElement('div');
+            div.className = 'list-item';
+            div.innerHTML = `<span>${escapeHtml(v)}</span><button class="remove-item" data-value="${escapeHtml(v)}">✖</button>`;
+            container.appendChild(div);
+        });
+        document.querySelectorAll('.remove-item').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const val = btn.getAttribute('data-value');
+                if (validSet.has(val)) {
+                    validSet.delete(val);
+                    updateListUI();
+                }
+            });
+        });
+    }
+    
+    // 规则引擎 (GR/MI直接成功)
+    function extractByRules(rawInput) {
+        if (!rawInput || rawInput.trim() === "") {
+            return { success: false, code: "", message: "输入为空", ruleName: "", isDirectSuccess: false, directPrefix: "" };
+        }
+        let cleaned = rawInput.trim();
+        const upperCleaned = cleaned.toUpperCase();
+        
+        if (upperCleaned.startsWith("GR")) {
+            return { success: true, code: "GR", ruleName: "GR前缀", isDirectSuccess: true, directPrefix: "GR", message: "GR包裹自动匹配成功" };
+        }
+        if (upperCleaned.startsWith("MI")) {
+            return { success: true, code: "MI", ruleName: "MI前缀", isDirectSuccess: true, directPrefix: "MI", message: "MI包裹自动匹配成功" };
+        }
+        if (upperCleaned.startsWith("UUS")) {
+            if (cleaned.length < 9) {
+                return { success: false, code: "", message: "UUS单号长度不足9位", ruleName: "UUS规则", isDirectSuccess: false, directPrefix: "" };
+            }
+            const seventh = cleaned.charAt(6);
+            const eighth = cleaned.charAt(7);
+            const ninth = cleaned.charAt(8);
+            const combined = (seventh + eighth + ninth).toUpperCase();
+            return { success: true, code: combined, ruleName: "UUS规则", isDirectSuccess: false, directPrefix: "" };
+        }
+        if (cleaned.length < 9) {
+            return { success: false, code: "", message: "单号长度不足9位", ruleName: "通用规则", isDirectSuccess: false, directPrefix: "" };
+        }
+        const defSeventh = cleaned.charAt(6);
+        const defEighth = cleaned.charAt(7);
+        const defNinth = cleaned.charAt(8);
+        const codeGeneral = (defSeventh + defEighth + defNinth).toUpperCase();
+        return { success: true, code: codeGeneral, ruleName: "通用7-9位", isDirectSuccess: false, directPrefix: "" };
+    }
+    
+    function evaluateFinalStatus(extractResult) {
+        if (extractResult.isDirectSuccess) return true;
+        if (extractResult.success && extractResult.code) {
+            return validSet.has(extractResult.code);
+        }
+        return false;
+    }
+    
+    function buildPreviewHTML(originalTrackingNumber, extractResult, isSuccess) {
+        const escapedTracking = escapeHtml(originalTrackingNumber);
+        const firstLine = `<div class="result-line"><span class="result-label">📦 单号</span><span class="result-value">${escapedTracking}</span></div>`;
+        if (isSuccess) {
+            let displayValue = "";
+            if (extractResult.isDirectSuccess) {
+                displayValue = extractResult.directPrefix || extractResult.code;
+            } else {
+                displayValue = extractResult.code || "";
+            }
+            let highlightClass = "highlight-code";
+            if (displayValue === "GR") highlightClass = "highlight-gr";
+            else if (displayValue === "MI") highlightClass = "highlight-mi";
+            const successHtml = `<div class="success-container">
+                                    <span class="success-check">✓</span>
+                                    <span class="${highlightClass}">${escapeHtml(displayValue)}</span>
+                                </div>`;
+            return `<div class="result-card">${firstLine}${successHtml}</div>`;
+        } else {
+            let codeLabel = extractResult.code ? `<span class="${'highlight-code'} destroy-code">${escapeHtml(extractResult.code)}</span>` : '';
+            const failHtml = `<div class="fail-container">
+                                    <span class="fail-cross">✗</span>
+                                    ${codeLabel}
+                                    <div class="destroy-banner">不在白名单 — 销毁</div>
+                                </div>`;
+            return `<div class="result-card">${firstLine}${failHtml}</div>`;
+        }
+    }
+    
+    // 记录存储模块
+    let recordsArray = [];
+    let nextId = 1;
+    let storageAvailable = true;
+
+    function loadRecordsFromStorage() {
+        let stored = null;
+        try {
+            stored = localStorage.getItem("scan_records_v2");
+        } catch(e) {
+            storageAvailable = false;
+        }
+        if (stored) {
+            try {
+                recordsArray = JSON.parse(stored);
+                if (Array.isArray(recordsArray)) {
+                    if (recordsArray.length > 0) {
+                        const maxId = Math.max(...recordsArray.map(r => r.id || 0), 0);
+                        nextId = maxId + 1;
+                    } else { nextId = 1; }
+                } else { recordsArray = []; }
+            } catch(e) { recordsArray = []; }
+        } else { recordsArray = []; }
+        renderRecordsList();
+    }
+    
+    function saveRecordsToStorage() {
+        try {
+            localStorage.setItem("scan_records_v2", JSON.stringify(recordsArray));
+        } catch(e) {
+            storageAvailable = false;
+            // 本地存储不可用时，记录仅保留在内存中（刷新页面会丢失）
+        }
+        updateRecordCountUI();
+    }
+    
+    function updateRecordCountUI() {
+        document.getElementById('recordCount').innerText = recordsArray.length;
+    }
+    
+    function addRecord(trackingNumber, extractResult, finalSuccess) {
+        let recognizedCode = "";
+        if (extractResult.isDirectSuccess) {
+            recognizedCode = extractResult.directPrefix;
+        } else if (extractResult.success && extractResult.code) {
+            recognizedCode = extractResult.code;
+        } else {
+            recognizedCode = "提取失败";
+        }
+        const ruleUsed = extractResult.ruleName || "通用规则";
+        const now = new Date();
+        const timestamp = now.toLocaleString('zh-CN', { hour12: false });
+        const record = {
+            id: nextId++,
+            trackingNumber: trackingNumber,
+            recognizedCode: recognizedCode,
+            status: finalSuccess ? "成功" : "销毁",
+            statusIcon: finalSuccess ? "✅" : "✗",
+            timestamp: timestamp,
+            ruleUsed: ruleUsed,
+            fullRaw: trackingNumber
+        };
+        recordsArray.unshift(record);
+        saveRecordsToStorage();
+        renderRecordsList();
+    }
+    
+    function deleteRecordById(id) {
+        recordsArray = recordsArray.filter(r => r.id !== id);
+        saveRecordsToStorage();
+        renderRecordsList();
+    }
+    
+    function eraseAllRecords() {
+        showConfirmModal("⚠️ 确定清空所有扫码记录？数据将无法恢复。", () => {
+            recordsArray = [];
+            nextId = 1;
+            saveRecordsToStorage();
+            renderRecordsList();
+        });
+    }
+
+    function showConfirmModal(message, onConfirm) {
+        const existing = document.getElementById('customConfirmOverlay');
+        if (existing) existing.remove();
+        const overlay = document.createElement('div');
+        overlay.id = 'customConfirmOverlay';
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;z-index:9999;';
+        overlay.innerHTML = `
+            <div style="background:white;border-radius:24px;padding:20px 22px;max-width:340px;width:90%;box-shadow:0 10px 30px rgba(0,0,0,0.2);">
+                <div style="font-size:0.9rem;color:#1e2f3e;margin-bottom:16px;line-height:1.4;">${message}</div>
+                <div style="display:flex;gap:10px;justify-content:flex-end;">
+                    <button id="confirmCancelBtn" style="background:#a8b8c2;padding:7px 16px;">取消</button>
+                    <button id="confirmOkBtn" style="background:#c44536;padding:7px 16px;">确定</button>
+                </div>
+            </div>`;
+        document.body.appendChild(overlay);
+        document.getElementById('confirmCancelBtn').addEventListener('click', () => overlay.remove());
+        document.getElementById('confirmOkBtn').addEventListener('click', () => {
+            overlay.remove();
+            onConfirm();
+        });
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+    }
+    
+    function renderRecordsList() {
+        const container = document.getElementById('recordsListContainer');
+        updateRecordCountUI();
+        if (!recordsArray.length) {
+            container.innerHTML = '<div class="empty-records">📭 暂无记录，扫码后按回车自动保存</div>';
+            return;
+        }
+        let html = '';
+        recordsArray.forEach(rec => {
+            const statusClass = rec.status === "成功" ? "status-success" : "status-fail";
+            html += `
+                <div class="record-item" data-id="${rec.id}">
+                    <div class="record-info">
+                        <div><span class="record-sn">${escapeHtml(rec.trackingNumber)}</span></div>
+                        <div class="record-detail">
+                            <span>🔑 识别码: <strong>${escapeHtml(rec.recognizedCode)}</strong></span>
+                            <span class="record-status ${statusClass}">${rec.statusIcon} ${rec.status}</span>
+                            <span class="record-time">⏱️ ${rec.timestamp}</span>
+                            <span style="font-size:0.65rem;">📐 ${rec.ruleUsed}</span>
+                        </div>
+                    </div>
+                    <button class="delete-record" data-id="${rec.id}" title="删除此记录">🗑️</button>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+        container.querySelectorAll('.delete-record').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = parseInt(btn.getAttribute('data-id'));
+                if (!isNaN(id)) deleteRecordById(id);
+            });
+        });
+    }
+    
+    function downloadCSV() {
+        if (recordsArray.length === 0) {
+            alert("暂无记录，请先扫码添加记录。");
+            return;
+        }
+        const headers = ["序号", "单号", "识别码", "判定结果", "识别规则", "记录时间"];
+        const rows = recordsArray.map((rec, idx) => [
+            idx+1,
+            rec.trackingNumber,
+            rec.recognizedCode,
+            rec.status,
+            rec.ruleUsed,
+            rec.timestamp
+        ]);
+        const csvContent = [headers, ...rows].map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+        const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.href = url;
+        link.setAttribute("download", "scan_records.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }
+    
+    // 核心流程
+    function performScanAndRecord() {
+        const textarea = document.getElementById('trackingInput');
+        const rawValue = textarea.value;
+        if (!rawValue || rawValue.trim() === "") {
+            document.getElementById('resultContainer').innerHTML = `<div class="empty-result">⚠️ 请输入单号或使用扫码枪</div>`;
+            textarea.focus();
+            return;
+        }
+        const trimmed = rawValue.trim();
+        const extractResult = extractByRules(trimmed);
+        const finalSuccess = evaluateFinalStatus(extractResult);
+        const previewHtml = buildPreviewHTML(trimmed, extractResult, finalSuccess);
+        document.getElementById('resultContainer').innerHTML = previewHtml;
+        addRecord(trimmed, extractResult, finalSuccess);
+        textarea.value = '';
+        textarea.focus();
+    }
+    
+    function clearInputOnly() {
+        document.getElementById('trackingInput').value = '';
+        document.getElementById('resultContainer').innerHTML = `<div class="empty-result">已清空，扫码或输入后按回车记录</div>`;
+        document.getElementById('trackingInput').focus();
+    }
+    
+    function fillDemoAndScan() {
+        const examples = ["GR202412345678", "MI202412345678", "UUS1234567890ABC", "UUS555111222", "PREXYZ12345", "ABC123456789", "UUS789012345", "UUS048123456", "UUS056789012"];
+        const randomEx = examples[Math.floor(Math.random() * examples.length)];
+        document.getElementById('trackingInput').value = randomEx;
+        performScanAndRecord();
+    }
+    
+    function addToList(valueRaw) {
+        let val = valueRaw.trim().toUpperCase();
+        if (val.length !== 3) {
+            alert('请输入3位数值');
+            return false;
+        }
+        if (!/^[A-Z0-9]{3}$/.test(val)) {
+            alert('只支持字母A-Z或数字0-9');
+            return false;
+        }
+        if (validSet.has(val)) {
+            alert(`"${val}" 已存在`);
+            return false;
+        }
+        validSet.add(val);
+        updateListUI();
+        return true;
+    }
+    
+    function resetDefaultList() {
+        validSet.clear();
+        const defSet = getDefaultValidSet();
+        defSet.forEach(v => validSet.add(v));
+        updateListUI();
+    }
+    
+    function initDefaultSet() {
+        validSet.clear();
+        const defSet = getDefaultValidSet();
+        defSet.forEach(v => validSet.add(v));
+        updateListUI();
+    }
+    
+    // ===== 商家检索 Section: 独立功能逻辑 =====
+    // 重要客户商家代码：这5个代码为重要客户，需要退回
+    const IMPORTANT_CLIENT_CODES = new Set(["119", "707", "85", "83", "178"]);
+
+    function codesMatch(a, b) {
+        if (a === b) return true;
+        if (/^\d+$/.test(a) && /^\d+$/.test(b)) return parseInt(a, 10) === parseInt(b, 10);
+        return false;
+    }
+
+    function extractMerchantCode(rawInput) {
+        const cleaned = rawInput.trim();
+        const upper = cleaned.toUpperCase();
+        if (upper.startsWith("GR") || upper.startsWith("MI")) {
+            return { notApplicable: true, prefix: upper.startsWith("GR") ? "GR" : "MI" };
+        }
+        if (cleaned.length < 9) {
+            return { error: "单号长度不足9位，无法提取商家代码" };
+        }
+        const code = (cleaned.charAt(6) + cleaned.charAt(7) + cleaned.charAt(8)).toUpperCase();
+        return { code };
+    }
+
+    function renderMerchantChips() {
+        const row = document.getElementById('merchantChipRow');
+        if (!row) return;
+        row.innerHTML = [...IMPORTANT_CLIENT_CODES].map(code =>
+            `<span class="merchant-chip" id="mchip-${code.replace(/[^a-zA-Z0-9]/g,'_')}">${escapeHtml(code)}<span class="lost-tag">重要客户=需退回</span></span>`
+        ).join('');
+    }
+
+    function performMerchantLookup() {
+        const input = document.getElementById('merchantLookupInput');
+        const raw = input.value;
+        const body = document.getElementById('merchantResultBody');
+
+        if (!raw || raw.trim() === "") {
+            body.innerHTML = `<div class="merchant-empty">⚠️ 请输入单号</div>`;
+            input.focus();
+            return;
+        }
+
+        document.querySelectorAll('.merchant-chip.highlight-flash').forEach(el => el.classList.remove('highlight-flash'));
+
+        const trimmed = raw.trim();
+        const result = extractMerchantCode(trimmed);
+
+        if (result.notApplicable) {
+            body.innerHTML = `<div class="merchant-empty">ℹ️ 「${escapeHtml(result.prefix)}」开头单号不适用此检索规则</div>
+                               <div class="merchant-tracking-echo">📦 ${escapeHtml(trimmed)}</div>`;
+        } else if (result.error) {
+            body.innerHTML = `<div class="merchant-empty">⚠️ ${escapeHtml(result.error)}</div>
+                               <div class="merchant-tracking-echo">📦 ${escapeHtml(trimmed)}</div>`;
+        } else {
+            const code = result.code;
+            const matchedImportant = [...IMPORTANT_CLIENT_CODES].find(c => codesMatch(c, code));
+            const isImportant = !!matchedImportant;
+
+            if (isImportant) {
+                const chip = document.getElementById('mchip-' + matchedImportant.replace(/[^a-zA-Z0-9]/g,'_'));
+                if (chip) chip.classList.add('highlight-flash');
+                body.innerHTML = `
+                    <div class="merchant-match">
+                        <span class="merchant-match-icon">🚩</span>
+                        <span class="merchant-match-code lost">${escapeHtml(code)}</span>
+                        <div class="merchant-match-banner lost">重要客户 — 需要退回</div>
+                        <div class="merchant-tracking-echo">📦 ${escapeHtml(trimmed)}</div>
+                    </div>`;
+            } else {
+                body.innerHTML = `
+                    <div class="merchant-match">
+                        <span class="merchant-match-icon">📦</span>
+                        <span class="merchant-match-code notlost">${escapeHtml(code)}</span>
+                        <div class="merchant-match-banner notlost">非重要客户名单内</div>
+                        <div class="merchant-tracking-echo">📦 ${escapeHtml(trimmed)}</div>
+                    </div>`;
+            }
+        }
+
+        input.value = '';
+        input.focus();
+    }
+
+
+    function bindEvents() {
+        document.getElementById('merchantCheckBtn').addEventListener('click', performMerchantLookup);
+        document.getElementById('merchantLookupInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                performMerchantLookup();
+            }
+        });
+        document.getElementById('demoFillBtn').addEventListener('click', fillDemoAndScan);
+        document.getElementById('clearScanBtn').addEventListener('click', clearInputOnly);
+        document.getElementById('addToListBtn').addEventListener('click', () => {
+            const inp = document.getElementById('newListValue');
+            if (addToList(inp.value)) inp.value = '';
+        });
+        document.getElementById('resetDefaultList').addEventListener('click', resetDefaultList);
+        document.getElementById('downloadRecordsBtn').addEventListener('click', downloadCSV);
+        document.getElementById('eraseAllRecordsBtn').addEventListener('click', eraseAllRecords);
+        const newInput = document.getElementById('newListValue');
+        newInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (addToList(newInput.value)) newInput.value = '';
+            }
+        });
+        const textarea = document.getElementById('trackingInput');
+        textarea.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                performScanAndRecord();
+            }
+        });
+        setTimeout(() => textarea.focus(), 100);
+    }
+    
+    function main() {
+        initDefaultSet();
+        renderMerchantChips();
+        loadRecordsFromStorage();
+        bindEvents();
+        document.getElementById('resultContainer').innerHTML = `<div class="empty-result">✅ 就绪 | 白名单已更新: 移除319,110,733，当前共${validSet.size}个有效数值</div>`;
+    }
+    
+    main();
+</script>
+</body>
+</html>
