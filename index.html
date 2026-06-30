@@ -804,6 +804,7 @@
                 <div class="batch-btn-row">
                     <button id="batchRunBtn2" class="batch-run-btn batch-run-btn-alt">🔍 批量检索</button>
                     <button id="batchClearBtn2" class="batch-clear-btn">✕ 清空</button>
+                    <button id="batchDownloadBtn2" class="batch-download-btn" style="display:none;">⬇️ 下载 CSV</button>
                 </div>
                 <div id="batchResult2" class="batch-result-area batch-result-area-alt" style="display:none;"></div>
             </div>
@@ -1294,24 +1295,39 @@
         const lines = document.getElementById('batchInput2').value.split(/\r?\n/).map(l => l.trim()).filter(l => l);
         if (!lines.length) return;
         let importantCount = 0, normalCount = 0, naCount = 0;
+        window._batch2Data = [];
         const rows = lines.map((line, i) => {
             const res = extractMerchantCode(line);
-            let code = '—', tag, cls;
-            if (res.notApplicable) { tag = `ℹ️ ${res.prefix} 不适用`; cls = 't-na'; naCount++; }
-            else if (res.error)    { tag = '⚠️ 长度不足'; cls = 't-na'; naCount++; }
+            let code = '—', tag, cls, statusText;
+            if (res.notApplicable) { tag = `ℹ️ ${res.prefix} 不适用`; statusText = '不适用'; cls = 't-na'; naCount++; }
+            else if (res.error)    { tag = '⚠️ 长度不足'; statusText = '长度不足'; cls = 't-na'; naCount++; }
             else {
                 code = res.code;
                 const match = [...IMPORTANT_CLIENT_CODES].find(c => codesMatch(c, code));
-                if (match) { tag = '🚩 重要客户 — 需退回'; cls = 't-important'; importantCount++; }
-                else       { tag = '✓ 普通'; cls = 't-normal'; normalCount++; }
+                if (match) { tag = '🚩 重要客户 — 需退回'; statusText = '重要客户-需退回'; cls = 't-important'; importantCount++; }
+                else       { tag = '✓ 普通'; statusText = '普通'; cls = 't-normal'; normalCount++; }
             }
+            window._batch2Data.push({ no: i+1, tracking: line, code, status: statusText });
             return `<tr><td>${i+1}</td><td style="word-break:break-all;max-width:180px;">${escapeHtml(line)}</td><td><b>${escapeHtml(code)}</b></td><td><span class="${cls}">${tag}</span></td></tr>`;
         });
         const r = document.getElementById('batchResult2');
         r.style.display = 'block';
         r.innerHTML = `<table class="batch-table batch-table-alt"><thead><tr><th>#</th><th>单号</th><th>商家代码</th><th>结果</th></tr></thead><tbody>${rows.join('')}</tbody></table>
             <div class="batch-summary batch-summary-alt">共 <b>${lines.length}</b> 条 &nbsp;·&nbsp; 🚩 重要客户 <b style="color:#991b1b">${importantCount}</b> &nbsp;·&nbsp; ✓ 普通 <b style="color:#166534">${normalCount}</b>${naCount ? ` &nbsp;·&nbsp; ⚠️ 不适用 <b>${naCount}</b>` : ''}</div>`;
+        document.getElementById('batchDownloadBtn2').style.display = 'inline-block';
     }
+
+    function downloadBatch2() {
+        const data = window._batch2Data;
+        if (!data || !data.length) return;
+        const csv = [['序号','单号','商家代码','结果'], ...data.map(r => [r.no, r.tracking, r.code, r.status])]
+            .map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'}));
+        a.download = '批量在仓包裹检索结果.csv';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    }
+
 
     function bindEvents() {
         document.getElementById('merchantCheckBtn').addEventListener('click', performMerchantLookup);
@@ -1329,7 +1345,9 @@
         document.getElementById('batchClearBtn2').addEventListener('click', () => {
             document.getElementById('batchInput2').value = '';
             document.getElementById('batchResult2').style.display = 'none';
+            document.getElementById('batchDownloadBtn2').style.display = 'none';
         });
+        document.getElementById('batchDownloadBtn2').addEventListener('click', downloadBatch2);
         document.getElementById('demoFillBtn').addEventListener('click', fillDemoAndScan);
         document.getElementById('clearScanBtn').addEventListener('click', clearInputOnly);
         document.getElementById('addToListBtn').addEventListener('click', () => {
